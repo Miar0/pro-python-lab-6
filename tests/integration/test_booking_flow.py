@@ -21,13 +21,11 @@ def test_full_booking_pipeline_with_cancellation(booking_factory):
     assert repo.bookings[1].status == "confirmed"
     assert len(repo.get_available_rooms()) == 0
 
-    # Використовуємо метод бізнес-логіки замість ручного підрахунку
     assert service.calculate_potential_revenue() == 2000.0
 
     service.cancel_booking(1)
     assert repo.bookings[1].status == "cancelled"
     assert len(repo.get_available_rooms()) == 1
-    # Після скасування revenue має стати 0
     assert service.calculate_potential_revenue() == 0.0
 
 

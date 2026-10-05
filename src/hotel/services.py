@@ -10,6 +10,20 @@ class Notifier(Protocol):
     def send(self, guest_name: str, message: str) -> None: ...
 
 
+class BookingSession:
+    """Для тестування context manager cleanup (Завдання підвищеної складності)."""
+
+    def __init__(self):
+        self.is_open = False
+
+    def __enter__(self):
+        self.is_open = True
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.is_open = False
+
+
 class BookingRepository:
     def __init__(self):
         self.bookings: dict[int, Booking] = {}
@@ -29,7 +43,6 @@ class BookingRepository:
     def get_available_rooms(self) -> list[Room]:
         return [room for room in self.rooms.values() if room.is_available]
 
-    # ДОДАНО: Визначення найдешевшої кімнати (Вимога варіанта 8)
     def get_cheapest_room(self) -> Optional[Room]:
         if not self.rooms:
             return None
@@ -68,7 +81,6 @@ class BookingService:
         self.notifier.send(booking.guest_name, f"Booking {booking_id} cancelled.")
         return True
 
-    # ДОДАНО: Розрахунок потенційного revenue (Вимога варіанта 8)
     def calculate_potential_revenue(self) -> float:
         return sum(booking.total_price() for booking in self.repo.bookings.values() if booking.status != "cancelled")
 

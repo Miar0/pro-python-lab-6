@@ -1,7 +1,6 @@
 import pytest
 from src.hotel.models import StandardRoom, Suite, Booking, Room
 
-# ДОДАНО: Використання pytest.param з id
 @pytest.mark.parametrize(
     "price",
     [
@@ -24,14 +23,14 @@ def test_invalid_booking_nights(standard_room, nights):
         Booking(booking_id=1, room=standard_room, guest_name="Guest", nights=nights)
 
 def test_invalid_booking_status(standard_room):
-    # ДОДАНО: Аналіз exc_info.value
     with pytest.raises(ValueError, match="Invalid status") as exc_info:
         Booking(booking_id=1, room=standard_room, guest_name="Guest", nights=2, status="unknown")
     assert "Invalid status" in str(exc_info.value)
 
 def test_standard_room_total_price(standard_room):
+    # Використовуємо parameterized_price з conftest (1000.0 або 1500.0)
     booking = Booking(1, standard_room, "Guest", 3)
-    assert booking.total_price() == 3000.0
+    assert booking.total_price() == standard_room.price * 3
 
 def test_suite_total_price_with_tax(suite_room):
     booking = Booking(1, suite_room, "Guest", 2)

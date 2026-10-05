@@ -1,10 +1,15 @@
 import json
+import pytest
 from src.hotel.exporters import export_bookings_to_json, import_bookings_from_csv
+from src.hotel.models import Booking
 
 
-def test_json_export(tmp_path, bookings_list):
+def test_json_export(tmp_path, booking_factory, standard_room):
+    b1 = booking_factory(1, standard_room, "Anna")
+    b2 = booking_factory(2, standard_room, "Oleg")
+
     output_file = tmp_path / "bookings.json"
-    data = [{"id": b.booking_id, "guest": b.guest_name} for b in bookings_list]
+    data = [{"id": b.booking_id, "guest": b.guest_name} for b in [b1, b2]]
 
     export_bookings_to_json(data, output_file)
 
@@ -18,7 +23,8 @@ def test_csv_import_bookings(tmp_path):
     csv_file = tmp_path / "bookings.csv"
     csv_file.write_text("id,room,status\n1,101,confirmed\n2,201,pending", encoding="utf-8")
 
-    bookings = import_bookings_from_csv(csv_file)
+    # Використовуємо list() бо тепер це генератор (yield)
+    bookings = list(import_bookings_from_csv(csv_file))
 
     assert len(bookings) == 2
     assert bookings[0]["booking_id"] == 1
@@ -29,10 +35,8 @@ def test_atomic_export_failure(tmp_path):
     output_file = tmp_path / "bookings.json"
     output_file.write_text("old valid data", encoding="utf-8")
 
-    # Імітуємо збій серіалізації (передаємо set замість dict)
     with pytest.raises(TypeError):
         export_bookings_to_json([{"bad_field": set()}], output_file)
 
-    # Перевіряємо, що старий файл зберігся і .tmp видалився
     assert output_file.read_text(encoding="utf-8") == "old valid data"
     assert not output_file.with_suffix('.tmp').exists()
