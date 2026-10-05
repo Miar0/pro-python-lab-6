@@ -5,25 +5,29 @@ from src.hotel.services import BookingRepository, BookingService
 
 
 @pytest.mark.integration
-def test_full_booking_pipeline():
-    """Інтеграційний тест: перевірка всього ланцюжка без мокування репозиторію."""
+def test_full_booking_pipeline_with_cancellation():
+    """Інтеграційний тест: перевірка всього ланцюжка бронювання та його скасування."""
     room = StandardRoom("101", 1000.0)
     booking = Booking(1, room, "TestGuest", 2)
 
     repo = BookingRepository()
+    repo.rooms[room.room_number] = room
     payment_gateway = Mock()
     payment_gateway.charge.return_value = True
     notifier = Mock()
 
     service = BookingService(repo, payment_gateway, notifier)
 
-    # Діємо
+    # 1. Бронюємо
     service.create_booking(booking)
-
-    # Перевіряємо інтеграцію
-    assert 1 in repo.bookings
     assert repo.bookings[1].status == "confirmed"
-    assert not room.is_available
+    assert len(repo.get_available_rooms()) == 0
+
     # Розрахунок потенційного доходу (revenue)
     total_revenue = sum(b.total_price() for b in repo.bookings.values())
     assert total_revenue == 2000.0
+
+    # 2. Скасовуємо
+    service.cancel_booking(1)
+    assert repo.bookings[1].status == "cancelled"
+    assert len(repo.get_available_rooms()) == 1  # Кімната знову вільна

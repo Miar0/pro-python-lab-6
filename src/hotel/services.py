@@ -20,8 +20,14 @@ class BookingRepository:
             raise BookingError("Duplicate booking")
         self.bookings[booking.booking_id] = booking
 
+    def get_booking(self, booking_id: int) -> Optional[Booking]:
+        return self.bookings.get(booking_id)
+
     def get_room(self, room_number: str) -> Optional[Room]:
         return self.rooms.get(room_number)
+
+    def get_available_rooms(self) -> list[Room]:
+        return [room for room in self.rooms.values() if room.is_available]
 
 
 class BookingService:
@@ -44,10 +50,20 @@ class BookingService:
         self.notifier.send(booking.guest_name, f"Booking {booking.booking_id} confirmed!")
         return True
 
+    def cancel_booking(self, booking_id: int) -> bool:
+        booking = self.repo.get_booking(booking_id)
+        if not booking:
+            raise BookingError("Booking not found")
+        if booking.status == "cancelled":
+            raise BookingError("Booking already cancelled")
+
+        booking.status = "cancelled"
+        booking.room.is_available = True
+        self.notifier.send(booking.guest_name, f"Booking {booking_id} cancelled.")
+        return True
+
 
 class AsyncBookingGateway:
-    """Асинхронний сервіс для отримання зовнішніх бронювань."""
-
     def __init__(self, client):
         self._client = client
 

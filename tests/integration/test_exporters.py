@@ -1,5 +1,5 @@
 import json
-from src.hotel.exporters import export_bookings_to_json, import_rooms_from_csv
+from src.hotel.exporters import export_bookings_to_json, import_bookings_from_csv
 
 
 def test_json_export(tmp_path, bookings_list):
@@ -14,12 +14,12 @@ def test_json_export(tmp_path, bookings_list):
     assert saved_data[0]["guest"] == "Anna"
 
 
-def test_csv_import(tmp_path):
-    csv_file = tmp_path / "rooms.csv"
-    csv_file.write_text("number,price\n101,1000\n102,1500", encoding="utf-8")
+def test_csv_import_bookings(tmp_path):
+    csv_file = tmp_path / "bookings.csv"
+    csv_file.write_text("id,room,status\n1,101,confirmed\n2,201,pending", encoding="utf-8")
 
-    rooms = import_rooms_from_csv(csv_file)
+    bookings = import_bookings_from_csv(csv_file)
 
-    assert len(rooms) == 2
-    assert rooms[0].room_number == "101"
-    assert rooms[1].price == 1500.0
+    assert len(bookings) == 2
+    assert bookings[0]["booking_id"] == 1
+    assert bookings[1]["status"] == "pending"

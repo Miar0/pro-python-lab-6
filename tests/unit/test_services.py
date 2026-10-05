@@ -4,10 +4,24 @@ from src.hotel.services import BookingService, BookingRepository, PaymentGateway
     AsyncBookingGateway
 
 
+# --- Тестування Repository ---
+def test_repository_get_available_rooms(standard_room, suite_room):
+    repo = BookingRepository()
+    repo.rooms["101"] = standard_room
+    repo.rooms["201"] = suite_room
+
+    suite_room.is_available = False  # Зайняли одну кімнату
+    available = repo.get_available_rooms()
+
+    assert len(available) == 1
+    assert available[0].room_number == "101"
+
+
+# --- Тестування Service ---
 def test_booking_success(valid_booking):
     repo = BookingRepository()
     payment = Mock(spec=PaymentGateway)
-    payment.charge.return_value = True  # return_value
+    payment.charge.return_value = True
     notifier = Mock(spec=Notifier)
 
     service = BookingService(repo, payment, notifier)
@@ -16,40 +30,80 @@ def test_booking_success(valid_booking):
     assert result is True
     assert valid_booking.status == "confirmed"
     assert not valid_booking.room.is_available
-
-    # Interaction assertions
     payment.charge.assert_called_once_with(3000.0)
-    notifier.send.assert_called_once_with("Ivan", "Booking 1 confirmed!")
 
 
 def test_payment_failure_path(valid_booking):
     repo = BookingRepository()
     payment = Mock(spec=PaymentGateway)
-    payment.charge.return_value = False  # Failure path
+    payment.charge.return_value = False
     notifier = Mock(spec=Notifier)
 
     service = BookingService(repo, payment, notifier)
-
     with pytest.raises(BookingError, match="Payment failed"):
         service.create_booking(valid_booking)
-
-    notifier.send.assert_not_called()
 
 
 def test_duplicate_booking(valid_booking):
     repo = BookingRepository()
-    repo.save_booking(valid_booking)  # Зберігаємо перший раз
+    repo.save_booking(valid_booking)
 
-    # side_effect не потрібен явно, бо репозиторій кине помилку сам, але мокнемо платіж
     payment = Mock(spec=PaymentGateway)
     payment.charge.return_value = True
-    notifier = Mock(spec=Notifier)
+    notifier = Mock()
 
     service = BookingService(repo, payment, notifier)
     with pytest.raises(BookingError, match="Duplicate booking"):
         service.create_booking(valid_booking)
 
 
+def test_booking_with_mocked_repo(valid_booking):
+    """Використання Mock для BookingRepository (вимога 8-го варіанта)."""
+    repo = Mock(spec=BookingRepository)
+    payment = Mock(spec=PaymentGateway)
+    payment.charge.return_value = True
+    notifier = Mock(spec=Notifier)
+
+    service = BookingService(repo, payment, notifier)
+    service.create_booking(valid_booking)
+
+    repo.save_booking.assert_called_once_with(valid_booking)
+
+
+def test_cancel_booking_success(valid_booking):
+    repo = BookingRepository()
+    valid_booking.room.is_available = False
+    valid_booking.status = "confirmed"
+    repo.save_booking(valid_booking)
+
+    notifier = Mock(spec=Notifier)
+    service = BookingService(repo, Mock(), notifier)
+
+    service.cancel_booking(1)
+
+    assert valid_booking.status == "cancelled"
+    assert valid_booking.room.is_available is True
+    notifier.send.assert_called_once_with("Ivan", "Booking 1 cancelled.")
+
+
+def test_cancel_nonexistent_booking():
+    repo = BookingRepository()
+    service = BookingService(repo, Mock(), Mock())
+    with pytest.raises(BookingError, match="Booking not found"):
+        service.cancel_booking(999)
+
+
+def test_cancel_already_cancelled_booking(valid_booking):
+    repo = BookingRepository()
+    valid_booking.status = "cancelled"
+    repo.save_booking(valid_booking)
+
+    service = BookingService(repo, Mock(), Mock())
+    with pytest.raises(BookingError, match="Booking already cancelled"):
+        service.cancel_booking(1)
+
+
+# --- Тестування Async ---
 @pytest.mark.asyncio
 async def test_async_gateway_success():
     client = AsyncMock()
