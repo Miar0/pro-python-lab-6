@@ -27,3 +27,7 @@ def test_cheapest_room():
     rooms = [Room("1", 500), Room("2", 300), Room("3", 1000)]
     cheapest = min(rooms, key=lambda r: r.price)
     assert cheapest.price == 300
+
+def test_invalid_booking_status(standard_room):
+    with pytest.raises(ValueError, match="Invalid status"):
+        Booking(booking_id=1, room=standard_room, guest_name="Guest", nights=2, status="unknown")

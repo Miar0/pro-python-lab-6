@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from src.hotel.config import get_allowed_statuses
 
 
 class BookingError(Exception):
@@ -42,6 +43,8 @@ class Booking:
     def __post_init__(self):
         if self.nights <= 0:
             raise ValueError("Nights must be positive")
+        if self.status not in get_allowed_statuses():
+            raise ValueError("Invalid status")
 
     def total_price(self) -> float:
         multiplier = 1.05 if isinstance(self.room, Suite) else 1.0

@@ -103,6 +103,28 @@ def test_cancel_already_cancelled_booking(valid_booking):
         service.cancel_booking(1)
 
 
+def test_repository_get_methods(standard_room):
+    repo = BookingRepository()
+    repo.rooms["101"] = standard_room
+
+    # Перевірка пошуку існуючої та неіснуючої кімнати
+    assert repo.get_room("101") == standard_room
+    assert repo.get_room("999") is None
+
+    # Перевірка пошуку неіснуючого бронювання
+    assert repo.get_booking(999) is None
+
+
+def test_create_booking_unavailable_room(valid_booking):
+    repo = BookingRepository()
+    # Імітуємо, що кімната вже зайнята
+    valid_booking.room.is_available = False
+    service = BookingService(repo, Mock(), Mock())
+
+    with pytest.raises(BookingError, match="Room is not available"):
+        service.create_booking(valid_booking)
+
+
 # --- Тестування Async ---
 @pytest.mark.asyncio
 async def test_async_gateway_success():
