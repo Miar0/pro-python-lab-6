@@ -68,5 +68,9 @@ class AsyncBookingGateway:
         self._client = client
 
     async def fetch_external_status(self, booking_id: int) -> str:
-        response = await self._client.get_status(booking_id)
-        return response.get("status", "unknown")
+        try:
+            response = await self._client.get_status(booking_id)
+            return response.get("status", "unknown")
+        except Exception as e:
+            # Демонстрація exception chaining (Завдання підвищеної складності)
+            raise BookingError("Gateway connection failed") from e

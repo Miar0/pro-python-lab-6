@@ -19,3 +19,10 @@ def bookings_list(standard_room, suite_room):
         Booking(1, standard_room, "Anna", 2),
         Booking(2, suite_room, "Oleg", 1)
     ]
+
+# Завдання підвищеної складності: Fixture factory
+@pytest.fixture
+def booking_factory():
+    def create_booking(booking_id: int, room, guest_name: str = "Guest", nights: int = 1):
+        return Booking(booking_id=booking_id, room=room, guest_name=guest_name, nights=nights)
+    return create_booking
