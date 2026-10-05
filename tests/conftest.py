@@ -1,6 +1,14 @@
 import pytest
 from src.hotel.models import StandardRoom, Suite, Booking
 
+# ДОДАНО: Демонстрація teardown через yield та scope="session"
+@pytest.fixture(scope="session")
+def test_session_setup():
+    # Setup
+    yield "session_active"
+    # Teardown
+    pass
+
 @pytest.fixture
 def standard_room():
     return StandardRoom(room_number="101", price=1000.0)
@@ -20,7 +28,6 @@ def bookings_list(standard_room, suite_room):
         Booking(2, suite_room, "Oleg", 1)
     ]
 
-# Завдання підвищеної складності: Fixture factory
 @pytest.fixture
 def booking_factory():
     def create_booking(booking_id: int, room, guest_name: str = "Guest", nights: int = 1):

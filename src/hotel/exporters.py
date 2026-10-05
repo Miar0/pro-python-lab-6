@@ -3,7 +3,13 @@ import csv
 from pathlib import Path
 
 def export_bookings_to_json(bookings: list[dict], path: Path) -> None:
-    path.write_text(json.dumps(bookings, ensure_ascii=False, indent=2), encoding="utf-8")
+    temp_path = path.with_suffix('.tmp')
+    try:
+        temp_path.write_text(json.dumps(bookings, ensure_ascii=False, indent=2), encoding="utf-8")
+        temp_path.replace(path) # Атомарна заміна
+    except Exception:
+        temp_path.unlink(missing_ok=True)
+        raise
 
 def import_bookings_from_csv(path: Path) -> list[dict]:
     bookings = []

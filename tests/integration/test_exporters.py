@@ -23,3 +23,16 @@ def test_csv_import_bookings(tmp_path):
     assert len(bookings) == 2
     assert bookings[0]["booking_id"] == 1
     assert bookings[1]["status"] == "pending"
+
+
+def test_atomic_export_failure(tmp_path):
+    output_file = tmp_path / "bookings.json"
+    output_file.write_text("old valid data", encoding="utf-8")
+
+    # Імітуємо збій серіалізації (передаємо set замість dict)
+    with pytest.raises(TypeError):
+        export_bookings_to_json([{"bad_field": set()}], output_file)
+
+    # Перевіряємо, що старий файл зберігся і .tmp видалився
+    assert output_file.read_text(encoding="utf-8") == "old valid data"
+    assert not output_file.with_suffix('.tmp').exists()
