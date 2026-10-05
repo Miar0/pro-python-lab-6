@@ -23,10 +23,6 @@ def test_suite_total_price_with_tax(suite_room):
     booking = Booking(1, suite_room, "Guest", 2)
     assert booking.total_price() == pytest.approx(6300.0)
 
-def test_cheapest_room():
-    rooms = [Room("1", 500), Room("2", 300), Room("3", 1000)]
-    cheapest = min(rooms, key=lambda r: r.price)
-    assert cheapest.price == 300
 
 def test_invalid_booking_status(standard_room):
     with pytest.raises(ValueError, match="Invalid status"):

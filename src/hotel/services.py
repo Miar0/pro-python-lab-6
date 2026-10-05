@@ -29,6 +29,12 @@ class BookingRepository:
     def get_available_rooms(self) -> list[Room]:
         return [room for room in self.rooms.values() if room.is_available]
 
+    # ДОДАНО: Визначення найдешевшої кімнати (Вимога варіанта 8)
+    def get_cheapest_room(self) -> Optional[Room]:
+        if not self.rooms:
+            return None
+        return min(self.rooms.values(), key=lambda r: r.price)
+
 
 class BookingService:
     def __init__(self, repo: BookingRepository, payment: PaymentGateway, notifier: Notifier):
@@ -62,6 +68,10 @@ class BookingService:
         self.notifier.send(booking.guest_name, f"Booking {booking_id} cancelled.")
         return True
 
+    # ДОДАНО: Розрахунок потенційного revenue (Вимога варіанта 8)
+    def calculate_potential_revenue(self) -> float:
+        return sum(booking.total_price() for booking in self.repo.bookings.values() if booking.status != "cancelled")
+
 
 class AsyncBookingGateway:
     def __init__(self, client):
@@ -72,5 +82,4 @@ class AsyncBookingGateway:
             response = await self._client.get_status(booking_id)
             return response.get("status", "unknown")
         except Exception as e:
-            # Демонстрація exception chaining (Завдання підвищеної складності)
             raise BookingError("Gateway connection failed") from e

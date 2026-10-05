@@ -109,6 +109,50 @@ def test_cancel_already_cancelled_booking(valid_booking):
         service.cancel_booking(1)
 
 
+def test_repository_get_cheapest_room(standard_room, suite_room):
+    repo = BookingRepository()
+    assert repo.get_cheapest_room() is None  # Empty case
+
+    repo.rooms["101"] = standard_room  # 1000.0
+    repo.rooms["201"] = suite_room  # 3000.0
+    assert repo.get_cheapest_room() == standard_room
+
+
+def test_calculate_potential_revenue(valid_booking):
+    repo = BookingRepository()
+    valid_booking.status = "confirmed"
+    repo.save_booking(valid_booking)
+
+    service = BookingService(repo, Mock(), Mock())
+    # 1000.0 * 3 nights = 3000.0
+    assert service.calculate_potential_revenue() == 3000.0
+
+
+# ЗАВДАННЯ ПІДВИЩЕНОЇ СКЛАДНОСТІ: Fake Repository
+class FakeBookingRepository(BookingRepository):
+    """Fake об'єкт, який імітує БД для тестів без використання Mocks."""
+
+    def __init__(self):
+        super().__init__()
+        self.save_calls = 0
+
+    def save_booking(self, booking):
+        super().save_booking(booking)
+        self.save_calls += 1
+
+
+def test_booking_with_fake_repository(valid_booking):
+    fake_repo = FakeBookingRepository()
+    payment = create_autospec(PaymentGateway, instance=True)
+    payment.charge.return_value = True
+
+    service = BookingService(fake_repo, payment, Mock())
+    service.create_booking(valid_booking)
+
+    assert fake_repo.save_calls == 1
+    assert 1 in fake_repo.bookings
+
+
 # Завдання підвищеної складності: Test exception chaining
 @pytest.mark.asyncio
 async def test_async_gateway_exception_chaining():
