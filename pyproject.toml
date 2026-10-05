@@ -1,0 +1,29 @@
+[project]
+name = "hotel"
+version = "0.1.0"
+description = "Hotel booking system"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
+    "pytest-cov>=7.1.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-ra --strict-markers"
+markers = [
+    "integration: integration tests",
+]
+
+[tool.coverage.run]
+branch = true
+source = ["src/hotel"]
+
+[tool.coverage.report]
+show_missing = true
