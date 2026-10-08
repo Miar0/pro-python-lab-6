@@ -1,8 +1,11 @@
 import pytest
 import json
-from unittest.mock import Mock, AsyncMock
+from unittest.mock import Mock, AsyncMock, create_autospec
+
+from hotel.exporters import export_bookings_to_json
 from hotel.models import Room, Booking
-from hotel.services import BookingService
+from hotel.services import BookingService, BookingRepository, PaymentGateway, Notifier
+
 
 @pytest.fixture
 def standard_room():
@@ -52,6 +55,33 @@ def test_room_validation(price, room_number, expected_valid):
         assert room.price == pytest.approx(price)  # Використання pytest.approx
         assert room.room_number == room_number
 
+
+@pytest.mark.integration
+def test_full_reservation_flow(tmp_path, standard_room, booking_factory):
+    repo = BookingRepository()
+    repo.rooms[standard_room.room_number] = standard_room
+
+    payment = create_autospec(PaymentGateway, instance=True)
+    payment.charge.return_value = True
+    notifier = create_autospec(Notifier, instance=True)
+
+    service = BookingService(repo, payment, notifier)
+
+    booking = booking_factory(booking_id=99, room=standard_room, guest_name="Alice", nights=2)
+    service.create_booking(booking)
+
+    output_file = tmp_path / "integration_export.json"
+    export_data = [{"id": b.booking_id, "status": b.status} for b in repo.bookings.values()]
+    export_bookings_to_json(export_data, output_file)
+
+    assert standard_room.is_available is False
+    payment.charge.assert_called_once()
+    notifier.send.assert_called_once()
+
+    assert output_file.exists()
+    saved_data = json.loads(output_file.read_text(encoding="utf-8"))
+    assert saved_data[0]["id"] == 99
+    assert saved_data[0]["status"] == "confirmed"
 
 # --- ТЕСТУВАННЯ СТАНІВ (Availability & Duplicate Booking) ---
 

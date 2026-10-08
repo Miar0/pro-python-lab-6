@@ -40,3 +40,11 @@ def test_atomic_export_failure(tmp_path):
 
     assert output_file.read_text(encoding="utf-8") == "old valid data"
     assert not output_file.with_suffix('.tmp').exists()
+
+def test_csv_import_malformed_record(tmp_path):
+    csv_file = tmp_path / "bad_bookings.csv"
+    # Передаємо невалідний id (текст замість числа), що має викликати помилку при int(row["id"])
+    csv_file.write_text("id,room,status\ninvalid_id,101,confirmed\n", encoding="utf-8")
+
+    with pytest.raises(ValueError):
+        list(import_bookings_from_csv(csv_file))
